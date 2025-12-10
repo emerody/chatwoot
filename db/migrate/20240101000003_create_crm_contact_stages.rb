@@ -9,9 +9,9 @@ class CreateCrmContactStages < ActiveRecord::Migration[7.0]
       t.timestamps
     end
 
-    add_index :crm_contact_stages, [:contact_id, :account_id], unique: true
-    add_index :crm_contact_stages, :stage_id
-    add_index :crm_contact_stages, :moved_at
+    add_index :crm_contact_stages, [:contact_id, :account_id], unique: true unless index_exists?(:crm_contact_stages, [:contact_id, :account_id])
+    add_index :crm_contact_stages, :stage_id unless index_exists?(:crm_contact_stages, :stage_id)
+    add_index :crm_contact_stages, :moved_at unless index_exists?(:crm_contact_stages, :moved_at)
   end
 end
 

@@ -10,8 +10,8 @@ class CreateCrmStages < ActiveRecord::Migration[7.0]
       t.timestamps
     end
 
-    add_index :crm_stages, [:pipeline_id, :position]
-    add_index :crm_stages, :account_id
+    add_index :crm_stages, [:pipeline_id, :position] unless index_exists?(:crm_stages, [:pipeline_id, :position])
+    add_index :crm_stages, :account_id unless index_exists?(:crm_stages, :account_id)
   end
 end
 
