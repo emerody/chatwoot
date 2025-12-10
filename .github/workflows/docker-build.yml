@@ -23,6 +23,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
+          file: ./docker/Dockerfile
           push: true
           tags: emerody/chatwoot-crm:latest,emerody/chatwoot-crm:v4.8.0
           cache-from: type=registry,ref=emerody/chatwoot-crm:buildcache
