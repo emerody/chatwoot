@@ -289,6 +289,13 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'CRM',
+      label: t('SIDEBAR.CRM'),
+      icon: 'i-lucide-layout-grid',
+      to: accountScopedRoute('crm_pipeline_index'),
+      activeOn: ['crm_pipeline_index'],
+    },
+    {
       name: 'Contacts',
       label: t('SIDEBAR.CONTACTS'),
       icon: 'i-lucide-contact',
