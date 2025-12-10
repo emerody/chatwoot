@@ -32,50 +32,48 @@
   </div>
 </template>
 
-<script>
-import { mapGetters } from 'vuex'
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useRoute } from 'vue-router';
+/* global axios */
 
-export default {
-  name: 'StageEditModal',
-  props: {
-    stage: {
-      type: Object,
-      required: true
-    }
-  },
-  data() {
-    return {
-      stageName: ''
-    }
-  },
-  computed: {
-    ...mapGetters({
-      currentAccount: 'getCurrentAccount'
-    })
-  },
-  mounted() {
-    this.stageName = this.stage.name
-  },
-  methods: {
-    async handleSave() {
-      try {
-        const response = await this.$axios.patch(
-          `/api/v1/accounts/${this.currentAccount.id}/crm/stages/${this.stage.id}`,
-          {
-            stage: {
-              name: this.stageName
-            }
-          }
-        )
-
-        this.$emit('saved', response.data)
-      } catch (error) {
-        console.error('Erro ao salvar stage:', error)
-        this.$toast.error('Erro ao salvar stage')
-      }
-    }
+const props = defineProps({
+  stage: {
+    type: Object,
+    required: true
   }
-}
+});
+
+const emit = defineEmits(['close', 'saved']);
+
+const store = useStore();
+const route = useRoute();
+const currentAccount = useMapGetter('getCurrentAccount');
+
+const stageName = ref('');
+
+onMounted(() => {
+  stageName.value = props.stage.name;
+});
+
+const handleSave = async () => {
+  try {
+    const accountId = currentAccount.value?.id || route.params.accountId;
+    const response = await axios.patch(
+      `/api/v1/accounts/${accountId}/crm/stages/${props.stage.id}`,
+      {
+        stage: {
+          name: stageName.value
+        }
+      }
+    );
+
+    emit('saved', response.data);
+  } catch (error) {
+    console.error('Erro ao salvar stage:', error);
+  }
+};
 </script>
 
 <style scoped>
@@ -200,4 +198,3 @@ export default {
   background: #2563eb;
 }
 </style>
-

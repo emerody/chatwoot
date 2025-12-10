@@ -499,7 +499,8 @@
         "ATTRIBUTES": "Atributos",
         "HISTORY": "Histórico",
         "NOTES": "Notas",
-        "MERGE": "Mesclar"
+        "MERGE": "Mesclar",
+        "CRM": "CRM"
       },
       "HISTORY": {
         "EMPTY_STATE": "Não há conversas anteriores associadas a este contato"

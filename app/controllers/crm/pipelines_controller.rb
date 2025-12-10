@@ -1,11 +1,22 @@
 module Crm
   class PipelinesController < ApplicationController
     before_action :set_account
-    before_action :set_pipeline, only: [:show]
 
     def show
+      @pipeline = @account.crm_pipelines.find_by(id: params[:id]) || 
+                  @account.crm_pipelines.default_pipeline.first ||
+                  create_default_pipeline
+      @stages = @pipeline.stages.ordered.includes(contact_stages: :contact)
+      
+      render json: {
+        pipeline: pipeline_json(@pipeline),
+        stages: @stages.map { |stage| stage_json(stage) }
+      }
+    end
+
+    def default
       @pipeline = @account.crm_pipelines.default_pipeline.first || create_default_pipeline
-      @stages = @pipeline.stages.ordered.includes(:contacts)
+      @stages = @pipeline.stages.ordered.includes(contact_stages: :contact)
       
       render json: {
         pipeline: pipeline_json(@pipeline),
@@ -19,11 +30,6 @@ module Crm
       @account = current_user.account
     end
 
-    def set_pipeline
-      @pipeline = @account.crm_pipelines.find_by(id: params[:id]) || 
-                  @account.crm_pipelines.default_pipeline.first ||
-                  create_default_pipeline
-    end
 
     def create_default_pipeline
       pipeline = Crm::Pipeline.create!(
@@ -49,7 +55,7 @@ module Crm
         position: stage.position,
         color: stage.color,
         contacts_count: stage.contacts_count,
-        contacts: stage.contacts.limit(50).map { |contact| contact_json(contact) }
+        contacts: stage.contacts.includes(:account).limit(50).map { |contact| contact_json(contact) }
       }
     end
 
@@ -58,7 +64,7 @@ module Crm
         id: contact.id,
         name: contact.name,
         email: contact.email,
-        phone: contact.phone_number,
+        phone_number: contact.phone_number,
         avatar_url: contact.avatar_url,
         identifier: contact.identifier
       }

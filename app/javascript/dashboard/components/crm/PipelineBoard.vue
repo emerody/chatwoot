@@ -1,7 +1,7 @@
 <template>
   <div class="crm-pipeline-board">
     <div class="pipeline-header">
-      <h2 class="pipeline-title">{{ pipeline.name }}</h2>
+      <h2 class="pipeline-title">{{ pipeline?.name || 'Pipeline Padrão' }}</h2>
     </div>
     
     <div class="stages-container" v-if="stages.length > 0">
@@ -37,103 +37,92 @@
   </div>
 </template>
 
-<script>
-import StageColumn from './StageColumn.vue'
-import StageEditModal from './StageEditModal.vue'
-import ContactModal from './ContactModal.vue'
-import { mapGetters } from 'vuex'
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useRoute } from 'vue-router';
+/* global axios */
+import StageColumn from './StageColumn.vue';
+import StageEditModal from './StageEditModal.vue';
+import ContactModal from './ContactModal.vue';
 
-export default {
-  name: 'PipelineBoard',
-  components: {
-    StageColumn,
-    StageEditModal,
-    ContactModal
-  },
-  data() {
-    return {
-      pipeline: null,
-      stages: [],
-      contactsByStage: {},
-      editingStage: null,
-      selectedContact: null
-    }
-  },
-  computed: {
-    ...mapGetters({
-      currentAccount: 'getCurrentAccount'
-    })
-  },
-  mounted() {
-    this.loadPipeline()
-  },
-  methods: {
-    async loadPipeline() {
-      try {
-        const response = await this.$axios.get(`/api/v1/accounts/${this.currentAccount.id}/crm/pipelines/default`)
-        this.pipeline = response.data.pipeline
-        this.stages = response.data.stages
-        
-        // Organizar contatos por stage
-        this.stages.forEach(stage => {
-          this.$set(this.contactsByStage, stage.id, stage.contacts || [])
-        })
-      } catch (error) {
-        console.error('Erro ao carregar pipeline:', error)
-        this.$toast.error('Erro ao carregar pipeline')
-      }
-    },
-    getContactsForStage(stageId) {
-      return this.contactsByStage[stageId] || []
-    },
-    async handleMoveContact({ contactId, fromStageId, toStageId }) {
-      try {
-        const response = await this.$axios.post(
-          `/api/v1/accounts/${this.currentAccount.id}/crm/contacts/${contactId}/move_to_stage`,
-          { stage_id: toStageId }
-        )
+const store = useStore();
+const route = useRoute();
+const currentAccount = useMapGetter('getCurrentAccount');
 
-        // Atualizar localmente
-        const contact = this.findContactInStage(contactId, fromStageId)
-        if (contact) {
-          // Remove do stage anterior
-          const fromContacts = this.contactsByStage[fromStageId] || []
-          const fromIndex = fromContacts.findIndex(c => c.id === contactId)
-          if (fromIndex !== -1) {
-            fromContacts.splice(fromIndex, 1)
-          }
+const pipeline = ref(null);
+const stages = ref([]);
+const contactsByStage = ref({});
+const editingStage = ref(null);
+const selectedContact = ref(null);
 
-          // Adiciona ao novo stage
-          const toContacts = this.contactsByStage[toStageId] || []
-          toContacts.push(contact)
-        }
+const getContactsForStage = (stageId) => {
+  return contactsByStage.value[stageId] || [];
+};
 
-        this.$toast.success('Contato movido com sucesso')
-      } catch (error) {
-        console.error('Erro ao mover contato:', error)
-        this.$toast.error('Erro ao mover contato')
-      }
-    },
-    findContactInStage(contactId, stageId) {
-      const contacts = this.contactsByStage[stageId] || []
-      return contacts.find(c => c.id === contactId)
-    },
-    handleEditStage(stage) {
-      this.editingStage = stage
-    },
-    async handleStageSaved(updatedStage) {
-      const index = this.stages.findIndex(s => s.id === updatedStage.id)
-      if (index !== -1) {
-        this.$set(this.stages, index, updatedStage)
-      }
-      this.editingStage = null
-      this.$toast.success('Stage atualizado com sucesso')
-    },
-    handleContactClick(contact) {
-      this.selectedContact = contact
-    }
+const loadPipeline = async () => {
+  try {
+    const accountId = currentAccount.value?.id || route.params.accountId;
+    const response = await axios.get(`/api/v1/accounts/${accountId}/crm/pipelines/default`);
+    pipeline.value = response.data.pipeline;
+    stages.value = response.data.stages;
+    
+    // Organizar contatos por stage
+    stages.value.forEach(stage => {
+      contactsByStage.value[stage.id] = stage.contacts || [];
+    });
+  } catch (error) {
+    console.error('Erro ao carregar pipeline:', error);
   }
-}
+};
+
+const handleMoveContact = async ({ contactId, fromStageId, toStageId }) => {
+  try {
+    const accountId = currentAccount.value?.id || route.params.accountId;
+    await axios.post(
+      `/api/v1/accounts/${accountId}/crm/contacts/${contactId}/move_to_stage`,
+      { stage_id: toStageId }
+    );
+
+    // Atualizar localmente
+    const fromContacts = contactsByStage.value[fromStageId] || [];
+    const contactIndex = fromContacts.findIndex(c => c.id === contactId);
+    
+    if (contactIndex !== -1) {
+      const contact = fromContacts[contactIndex];
+      fromContacts.splice(contactIndex, 1);
+      
+      const toContacts = contactsByStage.value[toStageId] || [];
+      toContacts.push(contact);
+    }
+
+    // Recarregar pipeline para garantir sincronização
+    await loadPipeline();
+  } catch (error) {
+    console.error('Erro ao mover contato:', error);
+  }
+};
+
+const handleEditStage = (stage) => {
+  editingStage.value = stage;
+};
+
+const handleStageSaved = async (updatedStage) => {
+  const index = stages.value.findIndex(s => s.id === updatedStage.id);
+  if (index !== -1) {
+    stages.value[index] = updatedStage;
+  }
+  editingStage.value = null;
+  await loadPipeline();
+};
+
+const handleContactClick = (contact) => {
+  selectedContact.value = contact;
+};
+
+onMounted(() => {
+  loadPipeline();
+});
 </script>
 
 <style scoped>
@@ -165,4 +154,3 @@ export default {
   color: #6b7280;
 }
 </style>
-

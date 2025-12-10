@@ -1,5 +1,5 @@
 <template>
-  <div class="stage-column" :style="{ borderTopColor: stage.color || '#3b82f6' }">
+  <div class="stage-column" :data-stage-id="stage.id" :style="{ borderTopColor: stage.color || '#3b82f6' }">
     <div class="stage-header">
       <h3 class="stage-name">{{ stage.name }}</h3>
       <button 
@@ -7,7 +7,9 @@
         @click="$emit('edit-stage', stage)"
         title="Editar stage"
       >
-        <i class="icon-edit"></i>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
       </button>
     </div>
     
@@ -31,69 +33,55 @@
   </div>
 </template>
 
-<script>
-import draggable from 'vuedraggable'
-import ContactCard from './ContactCard.vue'
+<script setup>
+import { ref, watch } from 'vue';
+import draggable from 'vuedraggable';
+import ContactCard from './ContactCard.vue';
 
-export default {
-  name: 'StageColumn',
-  components: {
-    draggable,
-    ContactCard
+const props = defineProps({
+  stage: {
+    type: Object,
+    required: true
   },
-  props: {
-    stage: {
-      type: Object,
-      required: true
-    },
-    contacts: {
-      type: Array,
-      default: () => []
-    }
-  },
-  data() {
-    return {
-      localContacts: []
-    }
-  },
-  watch: {
-    contacts: {
-      immediate: true,
-      handler(newContacts) {
-        this.localContacts = [...newContacts]
-      }
-    }
-  },
-  methods: {
-    handleDragEnd(event) {
-      if (event.added) {
-        // Contato foi adicionado a esta coluna
-        const contact = event.added.element
-        this.$emit('move-contact', {
-          contactId: contact.id,
-          fromStageId: event.from ? this.findStageIdByElement(event.from) : null,
-          toStageId: this.stage.id
-        })
-      } else if (event.removed) {
-        // Contato foi removido desta coluna
-        const contact = event.removed.element
-        this.$emit('move-contact', {
-          contactId: contact.id,
-          fromStageId: this.stage.id,
-          toStageId: event.to ? this.findStageIdByElement(event.to) : null
-        })
-      }
-    },
-    findStageIdByElement(element) {
-      // Encontrar stage ID pelo elemento DOM
-      const column = element.closest('.stage-column')
-      if (column) {
-        return parseInt(column.dataset.stageId)
-      }
-      return null
-    }
+  contacts: {
+    type: Array,
+    default: () => []
   }
-}
+});
+
+const emit = defineEmits(['move-contact', 'edit-stage', 'contact-clicked']);
+
+const localContacts = ref([...props.contacts]);
+
+watch(() => props.contacts, (newContacts) => {
+  localContacts.value = [...newContacts];
+}, { immediate: true });
+
+const handleDragEnd = (event) => {
+  if (event.added) {
+    const contact = event.added.element;
+    emit('move-contact', {
+      contactId: contact.id,
+      fromStageId: event.from ? findStageIdByElement(event.from) : null,
+      toStageId: props.stage.id
+    });
+  } else if (event.removed) {
+    const contact = event.removed.element;
+    emit('move-contact', {
+      contactId: contact.id,
+      fromStageId: props.stage.id,
+      toStageId: event.to ? findStageIdByElement(event.to) : null
+    });
+  }
+};
+
+const findStageIdByElement = (element) => {
+  const column = element.closest('.stage-column');
+  if (column) {
+    return parseInt(column.dataset.stageId);
+  }
+  return null;
+};
 </script>
 
 <style scoped>
@@ -129,6 +117,8 @@ export default {
   padding: 4px 8px;
   color: #6b7280;
   transition: color 0.2s;
+  display: flex;
+  align-items: center;
 }
 
 .edit-stage-btn:hover {
@@ -165,4 +155,3 @@ export default {
   background: #94a3b8;
 }
 </style>
-

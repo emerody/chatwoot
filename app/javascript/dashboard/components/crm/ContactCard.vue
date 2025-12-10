@@ -14,31 +14,29 @@
     <div class="contact-info">
       <div class="contact-name">{{ contact.name || 'Sem nome' }}</div>
       <div v-if="contact.email" class="contact-email">{{ contact.email }}</div>
-      <div v-if="contact.phone" class="contact-phone">{{ contact.phone }}</div>
+      <div v-if="contact.phone_number" class="contact-phone">{{ contact.phone_number }}</div>
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'ContactCard',
-  props: {
-    contact: {
-      type: Object,
-      required: true
-    }
-  },
-  methods: {
-    getInitials(name) {
-      if (!name) return '?'
-      const parts = name.split(' ')
-      if (parts.length >= 2) {
-        return (parts[0][0] + parts[1][0]).toUpperCase()
-      }
-      return name.substring(0, 2).toUpperCase()
-    }
+<script setup>
+const props = defineProps({
+  contact: {
+    type: Object,
+    required: true
   }
-}
+});
+
+defineEmits(['click']);
+
+const getInitials = (name) => {
+  if (!name) return '?';
+  const parts = name.split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
 </script>
 
 <style scoped>
@@ -111,4 +109,3 @@ export default {
   text-overflow: ellipsis;
 }
 </style>
-

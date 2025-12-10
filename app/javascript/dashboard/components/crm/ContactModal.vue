@@ -7,9 +7,6 @@
       </div>
       
       <div class="modal-body" v-if="contact">
-        <!-- Aqui você pode reutilizar componentes do Chatwoot para exibir todas as informações do contato -->
-        <!-- Por exemplo, o componente de detalhes de contato que já existe no Chatwoot -->
-        
         <div class="contact-details">
           <div class="contact-header">
             <div class="contact-avatar-large">
@@ -25,45 +22,43 @@
             <div class="contact-basic-info">
               <h2>{{ contact.name || 'Sem nome' }}</h2>
               <div v-if="contact.email" class="contact-field">
-                <i class="icon-mail"></i>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
                 {{ contact.email }}
               </div>
-              <div v-if="contact.phone" class="contact-field">
-                <i class="icon-phone"></i>
-                {{ contact.phone }}
+              <div v-if="contact.phone_number" class="contact-field">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                {{ contact.phone_number }}
               </div>
             </div>
           </div>
-          
-          <!-- Adicionar aqui outras informações do contato -->
-          <!-- Conversas, histórico, notas, tags, etc. -->
-          <!-- Você pode importar e reutilizar componentes existentes do Chatwoot -->
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'ContactModal',
-  props: {
-    contact: {
-      type: Object,
-      required: true
-    }
-  },
-  methods: {
-    getInitials(name) {
-      if (!name) return '?'
-      const parts = name.split(' ')
-      if (parts.length >= 2) {
-        return (parts[0][0] + parts[1][0]).toUpperCase()
-      }
-      return name.substring(0, 2).toUpperCase()
-    }
+<script setup>
+const props = defineProps({
+  contact: {
+    type: Object,
+    required: true
   }
-}
+});
+
+defineEmits(['close']);
+
+const getInitials = (name) => {
+  if (!name) return '?';
+  const parts = name.split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
 </script>
 
 <style scoped>
@@ -177,4 +172,3 @@ export default {
   margin-bottom: 8px;
 }
 </style>
-
