@@ -1,6 +1,5 @@
 module Crm
-  class StagesController < ApplicationController
-    before_action :set_account
+  class StagesController < Api::V1::Accounts::BaseController
     before_action :set_stage, only: [:update, :destroy]
 
     def update
@@ -22,7 +21,7 @@ module Crm
 
     def reorder
       params[:stages].each do |stage_data|
-        stage = @account.crm_stages.find(stage_data[:id])
+        stage = current_account.crm_stages.find(stage_data[:id])
         stage.update(position: stage_data[:position])
       end
       render json: { success: true }
@@ -30,12 +29,8 @@ module Crm
 
     private
 
-    def set_account
-      @account = current_user.account
-    end
-
     def set_stage
-      @stage = @account.crm_stages.find(params[:id])
+      @stage = current_account.crm_stages.find(params[:id])
     end
 
     def stage_params

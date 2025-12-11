@@ -1,10 +1,9 @@
 module Crm
-  class PipelinesController < ApplicationController
-    before_action :set_account
+  class PipelinesController < Api::V1::Accounts::BaseController
 
     def show
-      @pipeline = @account.crm_pipelines.find_by(id: params[:id]) || 
-                  @account.crm_pipelines.default_pipeline.first ||
+      @pipeline = current_account.crm_pipelines.find_by(id: params[:id]) || 
+                  current_account.crm_pipelines.default_pipeline.first ||
                   create_default_pipeline
       @stages = @pipeline.stages.ordered.includes(contact_stages: :contact)
       
@@ -15,7 +14,7 @@ module Crm
     end
 
     def default
-      @pipeline = @account.crm_pipelines.default_pipeline.first || create_default_pipeline
+      @pipeline = current_account.crm_pipelines.default_pipeline.first || create_default_pipeline
       @stages = @pipeline.stages.ordered.includes(contact_stages: :contact)
       
       render json: {
@@ -26,14 +25,9 @@ module Crm
 
     private
 
-    def set_account
-      @account = current_user.account
-    end
-
-
     def create_default_pipeline
       pipeline = Crm::Pipeline.create!(
-        account: @account,
+        account: current_account,
         name: 'Pipeline Padrão',
         is_default: true
       )

@@ -1,19 +1,18 @@
 module Crm
-  class ContactsController < ApplicationController
-    before_action :set_account
+  class ContactsController < Api::V1::Accounts::BaseController
     before_action :set_contact, only: [:move_to_stage]
 
     def move_to_stage
-      stage = @account.crm_stages.find(params[:stage_id])
+      stage = current_account.crm_stages.find(params[:stage_id])
       
       # Remove contato do stage anterior se existir
-      @account.crm_contact_stages.where(contact_id: @contact.id).destroy_all
+      current_account.crm_contact_stages.where(contact_id: @contact.id).destroy_all
       
       # Adiciona ao novo stage
-      contact_stage = @account.crm_contact_stages.create!(
+      contact_stage = current_account.crm_contact_stages.create!(
         contact: @contact,
         stage: stage,
-        account: @account
+        account: current_account
       )
 
       render json: {
@@ -27,7 +26,7 @@ module Crm
     end
 
     def contacts_in_stage
-      stage = @account.crm_stages.find(params[:stage_id])
+      stage = current_account.crm_stages.find(params[:stage_id])
       contacts = stage.contacts.includes(:crm_contact_stages)
       
       render json: {
@@ -38,12 +37,8 @@ module Crm
 
     private
 
-    def set_account
-      @account = current_user.account
-    end
-
     def set_contact
-      @contact = @account.contacts.find(params[:id])
+      @contact = current_account.contacts.find(params[:id])
     end
 
     def contact_json(contact)
@@ -54,7 +49,7 @@ module Crm
         phone: contact.phone_number,
         avatar_url: contact.avatar_url,
         identifier: contact.identifier,
-        current_stage: contact.crm_stage_for_account(@account.id)&.id
+        current_stage: contact.crm_stage_for_account(current_account.id)&.id
       }
     end
   end
