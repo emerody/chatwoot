@@ -10,6 +10,7 @@ import { CONVERSATION_PRIORITY } from '../../../../shared/constants/messages';
 import { CONVERSATION_EVENTS } from '../../../helper/AnalyticsHelper/events';
 import { useTrack } from 'dashboard/composables';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import MoveToCrmModal from 'dashboard/components/crm/MoveToCrmModal.vue';
 
 export default {
   components: {
@@ -17,6 +18,7 @@ export default {
     MultiselectDropdown,
     ConversationLabels,
     NextButton,
+    MoveToCrmModal,
   },
   props: {
     conversationId: {
@@ -32,6 +34,7 @@ export default {
   },
   data() {
     return {
+      showMoveToCrmModal: false,
       priorityOptions: [
         {
           id: null,
@@ -154,6 +157,9 @@ export default {
       }
       return false;
     },
+    contactId() {
+      return this.currentChat.meta?.sender?.id;
+    },
   },
   methods: {
     onSelfAssign() {
@@ -201,6 +207,27 @@ export default {
         this.assignedPriority.id === selectedPriorityItem.id;
 
       this.assignedPriority = isSamePriority ? null : selectedPriorityItem;
+    },
+    openMoveToCrmModal() {
+      if (this.contactId) {
+        this.showMoveToCrmModal = true;
+      }
+    },
+    async handleStageSelected(stage) {
+      if (!this.contactId) return;
+      
+      try {
+        const accountId = this.currentChat.account_id;
+        /* global axios */
+        await axios.post(
+          `/api/v1/accounts/${accountId}/crm/contacts/${this.contactId}/move_to_stage`,
+          { stage_id: stage.id }
+        );
+        useAlert(this.$t('CRM.CONTACT_MOVED_SUCCESS', { stage: stage.name }));
+      } catch (error) {
+        console.error('Erro ao mover contato para CRM:', error);
+        useAlert(this.$t('CRM.CONTACT_MOVE_ERROR'), 'error');
+      }
     },
   },
 };
@@ -281,5 +308,20 @@ export default {
       :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CONVERSATION_LABELS')"
     />
     <ConversationLabels :conversation-id="conversationId" />
+    <div v-if="contactId" class="multiselect-wrap--small mt-4">
+      <NextButton
+        block
+        size="sm"
+        icon="i-lucide-layout-grid"
+        :label="$t('CRM.MOVE_TO_CRM')"
+        @click="openMoveToCrmModal"
+      />
+    </div>
+    <MoveToCrmModal
+      v-if="showMoveToCrmModal"
+      :contact-id="contactId"
+      @close="showMoveToCrmModal = false"
+      @stage-selected="handleStageSelected"
+    />
   </div>
 </template>

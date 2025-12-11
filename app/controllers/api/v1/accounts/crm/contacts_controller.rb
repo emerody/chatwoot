@@ -11,11 +11,12 @@ module Api
             # Remove contato do stage anterior se existir
             current_account.crm_contact_stages.where(contact_id: @contact.id).destroy_all
             
-            # Adiciona ao novo stage
+            # Adiciona ao novo stage com timestamp
             contact_stage = current_account.crm_contact_stages.create!(
               contact: @contact,
               stage: stage,
-              account: current_account
+              account: current_account,
+              moved_at: Time.current
             )
 
             render json: {
@@ -60,4 +61,5 @@ module Api
     end
   end
 end
+
 
