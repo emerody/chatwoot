@@ -31,6 +31,7 @@
       :group="'contacts'"
       :animation="200"
       class="contacts-list"
+      @add="handleDragAdd"
       @end="handleDragEnd"
       item-key="id"
     >
@@ -45,7 +46,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import draggable from 'vuedraggable';
 import ContactCard from './ContactCard.vue';
 
@@ -63,45 +64,26 @@ const props = defineProps({
 const emit = defineEmits(['move-contact', 'edit-stage', 'contact-clicked', 'add-contact']);
 
 const localContacts = ref([...props.contacts]);
-const previousContacts = ref([...props.contacts]); // Guardar estado anterior para comparação
 
 watch(() => props.contacts, (newContacts) => {
   localContacts.value = [...newContacts];
-  previousContacts.value = [...newContacts];
 }, { immediate: true });
 
-const handleDragEnd = (event) => {
-  console.log('[CRM StageColumn] Drag end event completo:', {
-    added: event.added,
-    removed: event.removed,
-    from: event.from,
-    to: event.to,
-    item: event.item,
+// Evento disparado quando um item é ADICIONADO a esta lista
+const handleDragAdd = async (event) => {
+  console.log('[CRM StageColumn] Drag ADD event:', {
     newIndex: event.newIndex,
-    oldIndex: event.oldIndex
+    item: event.item,
+    from: event.from,
+    to: event.to
   });
   
-  // Comparar listas antes e depois para detectar mudanças
-  const previousIds = previousContacts.value.map(c => c.id);
-  const currentIds = localContacts.value.map(c => c.id);
+  // Aguardar próximo tick para garantir que localContacts foi atualizado
+  await nextTick();
   
-  // Encontrar contatos adicionados (estão em currentIds mas não em previousIds)
-  const addedContactIds = currentIds.filter(id => !previousIds.includes(id));
-  
-  // Encontrar contatos removidos (estão em previousIds mas não em currentIds)
-  const removedContactIds = previousIds.filter(id => !currentIds.includes(id));
-  
-  console.log('[CRM StageColumn] Comparação de listas:', {
-    previousIds,
-    currentIds,
-    addedContactIds,
-    removedContactIds,
-    stageId: props.stage.id
-  });
-  
-  // Se um contato foi adicionado a esta coluna
-  if (addedContactIds.length > 0) {
-    const contactId = addedContactIds[0]; // Pegar o primeiro (normalmente só um)
+  // Pegar o contato que foi adicionado (está no índice newIndex)
+  if (event.newIndex !== undefined && event.newIndex !== null && localContacts.value[event.newIndex]) {
+    const addedContact = localContacts.value[event.newIndex];
     
     // Encontrar o stage de origem
     let fromStageId = null;
@@ -117,17 +99,9 @@ const handleDragEnd = (event) => {
       }
     }
     
-    // Se ainda não encontrou, tentar pegar do dataset do item
-    if (!fromStageId && event.item && event.item.dataset) {
-      // O item pode ter informação sobre o stage anterior
-      const contactCard = event.item.querySelector('.contact-card');
-      if (contactCard && contactCard.dataset && contactCard.dataset.contactId) {
-        // Não temos o stage anterior, mas não importa - o backend vai descobrir
-      }
-    }
-    
-    console.log('[CRM StageColumn] Contato adicionado detectado:', {
-      contactId,
+    console.log('[CRM StageColumn] Contato adicionado via @add:', {
+      contactId: addedContact.id,
+      contactName: addedContact.name,
       fromStageId,
       toStageId: props.stage.id
     });
@@ -136,17 +110,25 @@ const handleDragEnd = (event) => {
     if (fromStageId !== props.stage.id) {
       console.log('[CRM StageColumn] Emitindo evento move-contact');
       emit('move-contact', {
-        contactId: contactId,
+        contactId: addedContact.id,
         fromStageId: fromStageId,
         toStageId: props.stage.id
       });
     } else {
       console.log('[CRM StageColumn] Contato não mudou de stage, ignorando');
     }
+  } else {
+    console.log('[CRM StageColumn] Não foi possível encontrar contato adicionado');
   }
-  
-  // Atualizar lista anterior para próxima comparação
-  previousContacts.value = [...localContacts.value];
+};
+
+const handleDragEnd = (event) => {
+  console.log('[CRM StageColumn] Drag END event:', {
+    from: event.from,
+    to: event.to,
+    item: event.item
+  });
+  // Este evento é apenas para log, a lógica principal está no @add
 };
 
 const findStageIdByElement = (element) => {
