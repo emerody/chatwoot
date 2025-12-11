@@ -13,6 +13,7 @@
         @move-contact="handleMoveContact"
         @edit-stage="handleEditStage"
         @contact-clicked="handleContactClick"
+        @add-contact="handleAddContact"
       />
     </div>
     
@@ -34,6 +35,15 @@
       :contact="selectedContact"
       @close="selectedContact = null"
     />
+
+    <!-- Modal de Adicionar Contato -->
+    <AddContactModal
+      v-if="addingContactToStage"
+      :stage-id="addingContactToStage.id"
+      :existing-contact-ids="getAllContactIds()"
+      @close="addingContactToStage = null"
+      @contact-selected="handleContactSelected"
+    />
   </div>
 </template>
 
@@ -45,6 +55,7 @@ import { useRoute } from 'vue-router';
 import StageColumn from './StageColumn.vue';
 import StageEditModal from './StageEditModal.vue';
 import ContactModal from './ContactModal.vue';
+import AddContactModal from './AddContactModal.vue';
 
 const store = useStore();
 const route = useRoute();
@@ -55,6 +66,7 @@ const stages = ref([]);
 const contactsByStage = ref({});
 const editingStage = ref(null);
 const selectedContact = ref(null);
+const addingContactToStage = ref(null);
 
 const getContactsForStage = (stageId) => {
   return contactsByStage.value[stageId] || [];
@@ -118,6 +130,38 @@ const handleStageSaved = async (updatedStage) => {
 
 const handleContactClick = (contact) => {
   selectedContact.value = contact;
+};
+
+const handleAddContact = (stage) => {
+  addingContactToStage.value = stage;
+};
+
+const handleContactSelected = async (contact) => {
+  if (!addingContactToStage.value) return;
+  
+  try {
+    const accountId = currentAccount.value?.id || route.params.accountId;
+    await axios.post(
+      `/api/v1/accounts/${accountId}/crm/contacts/${contact.id}/move_to_stage`,
+      { stage_id: addingContactToStage.value.id }
+    );
+    
+    // Recarregar pipeline
+    await loadPipeline();
+    addingContactToStage.value = null;
+  } catch (error) {
+    console.error('Erro ao adicionar contato:', error);
+  }
+};
+
+const getAllContactIds = () => {
+  const allIds = [];
+  Object.values(contactsByStage.value).forEach(contacts => {
+    contacts.forEach(contact => {
+      allIds.push(contact.id);
+    });
+  });
+  return allIds;
 };
 
 onMounted(() => {

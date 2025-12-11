@@ -15,6 +15,17 @@
     
     <div class="stage-count">{{ contacts.length }} contatos</div>
     
+    <button 
+      class="add-contact-btn" 
+      @click="$emit('add-contact', stage)"
+      title="Adicionar contato"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+      Adicionar Contato
+    </button>
+    
     <draggable
       v-model="localContacts"
       :group="'contacts'"
@@ -49,7 +60,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['move-contact', 'edit-stage', 'contact-clicked']);
+const emit = defineEmits(['move-contact', 'edit-stage', 'contact-clicked', 'add-contact']);
 
 const localContacts = ref([...props.contacts]);
 
@@ -128,7 +139,34 @@ const findStageIdByElement = (element) => {
 .stage-count {
   font-size: 12px;
   color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.add-contact-btn {
+  width: 100%;
+  padding: 8px 12px;
   margin-bottom: 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+
+.add-contact-btn:hover {
+  background: #2563eb;
+}
+
+.add-contact-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .contacts-list {
