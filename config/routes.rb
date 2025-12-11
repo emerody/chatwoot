@@ -326,6 +326,30 @@ Rails.application.routes.draw do
           end
 
           resources :upload, only: [:create]
+
+          # CRM Routes
+          namespace :crm do
+            resources :pipelines, only: [:show] do
+              member do
+                get :default
+              end
+            end
+
+            resources :stages, only: [:update, :destroy] do
+              collection do
+                post :reorder
+              end
+            end
+
+            resources :contacts, only: [] do
+              member do
+                post :move_to_stage
+              end
+              collection do
+                get :contacts_in_stage
+              end
+            end
+          end
         end
       end
       # end of account scoped api routes
@@ -422,30 +446,6 @@ Rails.application.routes.draw do
               get :conversation_metrics
               get :grouped_conversation_metrics
             end
-          end
-        end
-      end
-
-      # CRM Routes
-      namespace :crm do
-        resources :pipelines, only: [:show] do
-          member do
-            get :default
-          end
-        end
-
-        resources :stages, only: [:update, :destroy] do
-          collection do
-            post :reorder
-          end
-        end
-
-        resources :contacts, only: [] do
-          member do
-            post :move_to_stage
-          end
-          collection do
-            get :contacts_in_stage
           end
         end
       end
