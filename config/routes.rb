@@ -329,8 +329,8 @@ Rails.application.routes.draw do
 
           # CRM Routes
           namespace :crm do
-            resources :pipelines, only: [:show] do
-              member do
+            resources :pipelines, only: [] do
+              collection do
                 get :default
               end
             end
