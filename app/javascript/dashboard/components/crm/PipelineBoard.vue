@@ -91,36 +91,39 @@ const loadPipeline = async () => {
 const handleMoveContact = async ({ contactId, fromStageId, toStageId }) => {
   console.log('[CRM Frontend] Movendo contato:', { contactId, fromStageId, toStageId });
   
+  // Validar parâmetros
+  if (!contactId || !toStageId) {
+    console.error('[CRM Frontend] Parâmetros inválidos:', { contactId, fromStageId, toStageId });
+    return;
+  }
+  
   try {
     const accountId = currentAccount.value?.id || route.params.accountId;
     console.log('[CRM Frontend] Fazendo requisição POST para:', `/api/v1/accounts/${accountId}/crm/contacts/${contactId}/move_to_stage`);
     
+    // Fazer a requisição PRIMEIRO, aguardar resposta
     const response = await axios.post(
       `/api/v1/accounts/${accountId}/crm/contacts/${contactId}/move_to_stage`,
       { stage_id: toStageId }
     );
     
     console.log('[CRM Frontend] Resposta da API:', response.data);
-
-    // Atualizar localmente
-    const fromContacts = contactsByStage.value[fromStageId] || [];
-    const contactIndex = fromContacts.findIndex(c => c.id === contactId);
     
-    if (contactIndex !== -1) {
-      const contact = fromContacts[contactIndex];
-      fromContacts.splice(contactIndex, 1);
-      
-      const toContacts = contactsByStage.value[toStageId] || [];
-      toContacts.push(contact);
+    if (!response.data.success) {
+      console.error('[CRM Frontend] API retornou sucesso=false');
+      return;
     }
 
-    // Recarregar pipeline para garantir sincronização
+    // Recarregar pipeline para garantir sincronização com o servidor
     console.log('[CRM Frontend] Recarregando pipeline...');
     await loadPipeline();
     console.log('[CRM Frontend] Pipeline recarregado com sucesso');
   } catch (error) {
     console.error('[CRM Frontend] Erro ao mover contato:', error);
     console.error('[CRM Frontend] Detalhes do erro:', error.response?.data || error.message);
+    
+    // Em caso de erro, recarregar para voltar ao estado correto
+    await loadPipeline();
   }
 };
 

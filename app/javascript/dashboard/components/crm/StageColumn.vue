@@ -69,36 +69,80 @@ watch(() => props.contacts, (newContacts) => {
 }, { immediate: true });
 
 const handleDragEnd = (event) => {
-  console.log('[CRM StageColumn] Drag end event:', event);
+  console.log('[CRM StageColumn] Drag end event completo:', {
+    added: event.added,
+    removed: event.removed,
+    from: event.from,
+    to: event.to,
+    item: event.item
+  });
   
   // Quando um contato é adicionado a esta coluna, significa que foi movido PARA aqui
-  if (event.added) {
+  if (event.added && event.added.element) {
     const contact = event.added.element;
-    const fromStageId = event.from ? findStageIdByElement(event.from) : null;
+    let fromStageId = null;
+    
+    // Tentar encontrar o stage de origem de várias formas
+    if (event.from) {
+      fromStageId = findStageIdByElement(event.from);
+    }
+    
+    // Se não encontrou pelo elemento, tentar pelo item
+    if (!fromStageId && event.item) {
+      const fromColumn = event.item.closest('.stage-column');
+      if (fromColumn) {
+        fromStageId = parseInt(fromColumn.dataset.stageId);
+      }
+    }
     
     console.log('[CRM StageColumn] Contato adicionado:', {
       contactId: contact.id,
+      contactName: contact.name,
       fromStageId,
-      toStageId: props.stage.id
+      toStageId: props.stage.id,
+      fromElement: event.from?.className,
+      itemElement: event.item?.className
     });
     
-    // Só emitir se realmente veio de outro stage
-    if (fromStageId && fromStageId !== props.stage.id) {
+    // Só emitir se realmente veio de outro stage (ou se não sabemos de onde veio, mas está vindo para cá)
+    if (fromStageId !== props.stage.id) {
+      console.log('[CRM StageColumn] Emitindo evento move-contact');
       emit('move-contact', {
         contactId: contact.id,
         fromStageId: fromStageId,
         toStageId: props.stage.id
       });
+    } else {
+      console.log('[CRM StageColumn] Contato não mudou de stage, ignorando');
     }
+  } else {
+    console.log('[CRM StageColumn] Nenhum contato adicionado ou elemento inválido');
   }
-  // Não precisamos tratar event.removed aqui, pois o stage de destino já trata o event.added
 };
 
 const findStageIdByElement = (element) => {
-  const column = element.closest('.stage-column');
-  if (column) {
-    return parseInt(column.dataset.stageId);
+  if (!element) return null;
+  
+  // Tentar encontrar a coluna pai
+  let column = element.closest ? element.closest('.stage-column') : null;
+  
+  // Se não encontrou, tentar pelo parentElement
+  if (!column && element.parentElement) {
+    column = element.parentElement.closest('.stage-column');
   }
+  
+  // Se ainda não encontrou, tentar procurar pelo dataset diretamente
+  if (!column && element.dataset && element.dataset.stageId) {
+    return parseInt(element.dataset.stageId);
+  }
+  
+  if (column && column.dataset && column.dataset.stageId) {
+    const stageId = parseInt(column.dataset.stageId);
+    console.log('[CRM StageColumn] Stage ID encontrado:', stageId);
+    return stageId;
+  }
+  
+  console.log('[CRM StageColumn] Não foi possível encontrar stage ID do elemento:', element);
   return null;
 };
 </script>
