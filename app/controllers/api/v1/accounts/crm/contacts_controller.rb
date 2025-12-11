@@ -8,16 +8,25 @@ module Api
           def move_to_stage
             stage = current_account.crm_stages.find(params[:stage_id])
             
-            # Remove contato do stage anterior se existir
-            current_account.crm_contact_stages.where(contact_id: @contact.id).destroy_all
-            
-            # Adiciona ao novo stage com timestamp
-            contact_stage = current_account.crm_contact_stages.create!(
-              contact: @contact,
-              stage: stage,
-              account: current_account,
-              moved_at: Time.current
-            )
+            # Usar transação para garantir atomicidade
+            ActiveRecord::Base.transaction do
+              # Remove contato do stage anterior se existir
+              # Usando delete_all para execução imediata sem callbacks
+              deleted_count = current_account.crm_contact_stages
+                .where(contact_id: @contact.id)
+                .delete_all
+              
+              # Adiciona ao novo stage com timestamp
+              contact_stage = current_account.crm_contact_stages.create!(
+                contact: @contact,
+                stage: stage,
+                account: current_account,
+                moved_at: Time.current
+              )
+            end
+
+            # Recarrega o contato para garantir dados atualizados
+            @contact.reload
 
             render json: {
               success: true,

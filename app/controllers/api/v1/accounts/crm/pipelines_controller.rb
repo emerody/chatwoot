@@ -45,13 +45,22 @@ module Api
           end
 
           def stage_json(stage)
+            # Buscar contatos que estão atualmente neste stage
+            # Como temos validação uniqueness, cada contato só pode ter um registro por account
+            contact_stages = stage.contact_stages
+              .includes(:contact)
+              .order('crm_contact_stages.moved_at DESC')
+              .limit(50)
+            
+            contacts = contact_stages.map(&:contact).compact.uniq
+
             {
               id: stage.id,
               name: stage.name,
               position: stage.position,
               color: stage.color,
-              contacts_count: stage.contacts_count,
-              contacts: stage.contacts.includes(:account).limit(50).map { |contact| contact_json(contact) }
+              contacts_count: stage.contact_stages.count,
+              contacts: contacts.map { |contact| contact_json(contact) }
             }
           end
 
