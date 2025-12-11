@@ -1,0 +1,73 @@
+module Api
+  module V1
+    module Accounts
+      module Crm
+        class PipelinesController < Api::V1::Accounts::BaseController
+          def show
+            @pipeline = current_account.crm_pipelines.find_by(id: params[:id]) || 
+                        current_account.crm_pipelines.default_pipeline.first ||
+                        create_default_pipeline
+            @stages = @pipeline.stages.ordered.includes(contact_stages: :contact)
+            
+            render json: {
+              pipeline: pipeline_json(@pipeline),
+              stages: @stages.map { |stage| stage_json(stage) }
+            }
+          end
+
+          def default
+            @pipeline = current_account.crm_pipelines.default_pipeline.first || create_default_pipeline
+            @stages = @pipeline.stages.ordered.includes(contact_stages: :contact)
+            
+            render json: {
+              pipeline: pipeline_json(@pipeline),
+              stages: @stages.map { |stage| stage_json(stage) }
+            }
+          end
+
+          private
+
+          def create_default_pipeline
+            pipeline = ::Crm::Pipeline.create!(
+              account: current_account,
+              name: 'Pipeline Padrão',
+              is_default: true
+            )
+            pipeline
+          end
+
+          def pipeline_json(pipeline)
+            {
+              id: pipeline.id,
+              name: pipeline.name,
+              is_default: pipeline.is_default
+            }
+          end
+
+          def stage_json(stage)
+            {
+              id: stage.id,
+              name: stage.name,
+              position: stage.position,
+              color: stage.color,
+              contacts_count: stage.contacts_count,
+              contacts: stage.contacts.includes(:account).limit(50).map { |contact| contact_json(contact) }
+            }
+          end
+
+          def contact_json(contact)
+            {
+              id: contact.id,
+              name: contact.name,
+              email: contact.email,
+              phone_number: contact.phone_number,
+              avatar_url: contact.avatar_url,
+              identifier: contact.identifier
+            }
+          end
+        end
+      end
+    end
+  end
+end
+
