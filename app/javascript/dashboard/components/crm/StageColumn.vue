@@ -69,21 +69,29 @@ watch(() => props.contacts, (newContacts) => {
 }, { immediate: true });
 
 const handleDragEnd = (event) => {
+  console.log('[CRM StageColumn] Drag end event:', event);
+  
+  // Quando um contato é adicionado a esta coluna, significa que foi movido PARA aqui
   if (event.added) {
     const contact = event.added.element;
-    emit('move-contact', {
+    const fromStageId = event.from ? findStageIdByElement(event.from) : null;
+    
+    console.log('[CRM StageColumn] Contato adicionado:', {
       contactId: contact.id,
-      fromStageId: event.from ? findStageIdByElement(event.from) : null,
+      fromStageId,
       toStageId: props.stage.id
     });
-  } else if (event.removed) {
-    const contact = event.removed.element;
-    emit('move-contact', {
-      contactId: contact.id,
-      fromStageId: props.stage.id,
-      toStageId: event.to ? findStageIdByElement(event.to) : null
-    });
+    
+    // Só emitir se realmente veio de outro stage
+    if (fromStageId && fromStageId !== props.stage.id) {
+      emit('move-contact', {
+        contactId: contact.id,
+        fromStageId: fromStageId,
+        toStageId: props.stage.id
+      });
+    }
   }
+  // Não precisamos tratar event.removed aqui, pois o stage de destino já trata o event.added
 };
 
 const findStageIdByElement = (element) => {
