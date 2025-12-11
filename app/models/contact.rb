@@ -258,19 +258,5 @@ class Contact < ApplicationRecord
   def dispatch_destroy_event
     Rails.configuration.dispatcher.dispatch(CONTACT_DELETED, Time.zone.now, contact: self)
   end
-
-  # Adicionar relacionamentos CRM
-  has_many :crm_contact_stages, class_name: 'Crm::ContactStage', dependent: :destroy
-  has_many :crm_stages, through: :crm_contact_stages, class_name: 'Crm::Stage'
-  has_one :current_crm_stage, -> { order('crm_contact_stages.moved_at DESC') }, 
-          through: :crm_contact_stages, source: :stage, class_name: 'Crm::Stage'
-
-  def crm_stage_for_account(account_id)
-    crm_contact_stages.joins(:stage)
-                      .where(account_id: account_id)
-                      .order('crm_contact_stages.moved_at DESC')
-                      .first&.stage
-  end
-
-  private
+end
 Contact.include_mod_with('Concerns::Contact')
