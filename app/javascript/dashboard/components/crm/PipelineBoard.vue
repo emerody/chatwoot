@@ -89,12 +89,18 @@ const loadPipeline = async () => {
 };
 
 const handleMoveContact = async ({ contactId, fromStageId, toStageId }) => {
+  console.log('[CRM Frontend] Movendo contato:', { contactId, fromStageId, toStageId });
+  
   try {
     const accountId = currentAccount.value?.id || route.params.accountId;
-    await axios.post(
+    console.log('[CRM Frontend] Fazendo requisição POST para:', `/api/v1/accounts/${accountId}/crm/contacts/${contactId}/move_to_stage`);
+    
+    const response = await axios.post(
       `/api/v1/accounts/${accountId}/crm/contacts/${contactId}/move_to_stage`,
       { stage_id: toStageId }
     );
+    
+    console.log('[CRM Frontend] Resposta da API:', response.data);
 
     // Atualizar localmente
     const fromContacts = contactsByStage.value[fromStageId] || [];
@@ -109,9 +115,12 @@ const handleMoveContact = async ({ contactId, fromStageId, toStageId }) => {
     }
 
     // Recarregar pipeline para garantir sincronização
+    console.log('[CRM Frontend] Recarregando pipeline...');
     await loadPipeline();
+    console.log('[CRM Frontend] Pipeline recarregado com sucesso');
   } catch (error) {
-    console.error('Erro ao mover contato:', error);
+    console.error('[CRM Frontend] Erro ao mover contato:', error);
+    console.error('[CRM Frontend] Detalhes do erro:', error.response?.data || error.message);
   }
 };
 

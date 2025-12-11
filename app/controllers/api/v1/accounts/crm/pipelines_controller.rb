@@ -53,6 +53,12 @@ module Api
               .limit(50)
             
             contacts = contact_stages.map(&:contact).compact.uniq
+            
+            Rails.logger.info "[CRM] Stage #{stage.id} (#{stage.name}): #{contacts.count} contatos encontrados"
+            contacts.each do |contact|
+              current_stage = contact.crm_stage_for_account(current_account.id)
+              Rails.logger.info "[CRM]   - Contato #{contact.id} (#{contact.name}): stage atual=#{current_stage&.id} (#{current_stage&.name}), esperado=#{stage.id}"
+            end
 
             {
               id: stage.id,
