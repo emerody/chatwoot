@@ -1,5 +1,5 @@
 <template>
-  <div class="contact-card" @click="$emit('click', contact)">
+  <div class="contact-card" :data-contact-id="contact.id" @click="$emit('click', contact)">
     <div class="contact-avatar">
       <img 
         v-if="contact.avatar_url" 
