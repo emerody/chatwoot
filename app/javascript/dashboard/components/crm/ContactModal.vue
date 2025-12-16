@@ -476,7 +476,6 @@ export default {
         )
         
         this.fullContactData = response.data.payload || this.contact
-        console.log('ContactModal - fullContactData loaded:', this.fullContactData)
       } catch (error) {
         console.error('Erro ao buscar detalhes do contato:', error)
         this.fullContactData = { ...this.contact }
