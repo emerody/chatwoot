@@ -65,6 +65,10 @@
             <div class="info-card">
               <h3 class="card-title">Informações Básicas</h3>
               <div class="info-list">
+                <div v-if="fullContactData.name || contact.name" class="info-row">
+                  <span class="info-label">Nome:</span>
+                  <span class="info-value">{{ fullContactData.name || contact.name }}</span>
+                </div>
                 <div v-if="fullContactData.identifier" class="info-row">
                   <span class="info-label">ID:</span>
                   <span class="info-value">{{ fullContactData.identifier }}</span>
@@ -226,7 +230,7 @@
                 </div>
               </div>
               <div class="conversation-actions">
-                <button class="btn-view-conversation" @click="openConversation(conversation.id)">
+                <button class="btn-view-conversation" @click="openConversation(conversation)">
                   <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -472,6 +476,7 @@ export default {
         )
         
         this.fullContactData = response.data.payload || this.contact
+        console.log('ContactModal - fullContactData loaded:', this.fullContactData)
       } catch (error) {
         console.error('Erro ao buscar detalhes do contato:', error)
         this.fullContactData = { ...this.contact }
@@ -484,7 +489,16 @@ export default {
       
       this.loadingConversations = true
       try {
-        const response = await ContactAPI.getConversations(this.contact.id)
+        const accountId = this.currentAccount?.id
+        if (!accountId) {
+          console.error('Account ID não encontrado')
+          this.conversations = []
+          return
+        }
+        
+        const response = await this.$axios.get(
+          `/api/v1/accounts/${accountId}/contacts/${this.contact.id}/conversations`
+        )
         this.conversations = response.data.payload || []
         this.updateTabCount('conversations', this.conversations.length)
       } catch (error) {
@@ -520,12 +534,12 @@ export default {
       try {
         const accountId = this.currentAccount?.id
         if (!accountId) {
-          alert('Account ID não encontrado')
+          this.$toast.error('Account ID não encontrado')
           return
         }
 
         // CORREÇÃO: Enviar no formato correto { note: { content: '...' } }
-        await this.$axios.post(
+        const response = await this.$axios.post(
           `/api/v1/accounts/${accountId}/contacts/${this.contact.id}/notes`,
           { note: { content: this.newNoteContent.trim() } }
         )
@@ -533,9 +547,11 @@ export default {
         this.newNoteContent = ''
         this.showAddNote = false
         await this.fetchNotes()
+        this.$toast.success('Nota salva com sucesso!')
       } catch (error) {
         console.error('Erro ao salvar nota:', error)
-        alert('Erro ao salvar nota. Tente novamente.')
+        const errorMessage = error.response?.data?.error || 'Erro ao salvar nota. Tente novamente.'
+        this.$toast.error(errorMessage)
       } finally {
         this.savingNote = false
       }
@@ -561,16 +577,18 @@ export default {
         this.$set(tab, 'count', count)
       }
     },
-    openConversation(conversationId) {
+    openConversation(conversation) {
       const accountId = this.currentAccount?.id
       if (accountId) {
+        // Usar uuid se disponível, senão usar id (display_id)
+        const conversationId = conversation.uuid || conversation.id
         const path = frontendURL(
           conversationUrl({
             accountId: accountId,
             id: conversationId
           })
         )
-        window.open(path, '_blank')
+        window.open(window.chatwootConfig.hostURL + path, '_blank')
       }
     },
     getInboxName(conversation) {
