@@ -431,11 +431,9 @@ export default {
     contact: {
       immediate: true,
       handler(newContact) {
-        console.log('ContactModal - contact changed:', newContact)
         // Inicializar com dados básicos imediatamente
         if (newContact) {
           this.fullContactData = { ...newContact }
-          console.log('ContactModal - fullContactData initialized:', this.fullContactData)
         }
         
         if (newContact && newContact.id) {
